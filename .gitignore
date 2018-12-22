@@ -1,4 +1,6 @@
 *.cpp.un~
 *.cpp~
+*.py.un~
+*.py~
 *.obj
 *.exe
