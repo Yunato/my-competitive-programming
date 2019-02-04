@@ -2,18 +2,7 @@
 
 ## 関数定義
 # 新規作成
-CreateDir () {
-    echo "Create new directory (name: ./$service_name/$contest_name)"
-    mkdir "$contest_name"
-    cd "$contest_name"
-    #pwd
-
-    # 問題の名前をスペース区切りで入力 ('A B C D'など)
-    echo "Please input questions name separated by spaces."
-    read questions_name
-    echo ""
-    mkdir $questions_name
-
+ReadyDir () {
     # ls コマンドでディレクトリ取得は無理っぽい
     dir_path=`pwd`
     dir_path="$dir_path/*"
@@ -35,42 +24,71 @@ CreateDir () {
     # 問題別ディレクトリの作成
     for path in ${dirary[@]};
     do
-        cd $path
-        #pwd
+        if [ -d $path ];
+        then
+            cd $path
+            #pwd
 
-        index=0
-        while [ $index -lt ${#lang_info[*]} ];
-        do
-            # 言語別ディレクトリの作成
-            mkdir "${lang_info[index]}"
-            cd "${lang_info[index]}"
-            index=`expr $index + 1`
+            index=0
+            while [ $index -lt ${#lang_info[*]} ];
+            do
+                # 言語別ディレクトリの作成
+                mkdir "${lang_info[index]}"
+                cd "${lang_info[index]}"
+                index=`expr $index + 1`
 
-            # テンプレートファイルのコピー
-            if [ -e $base_path/template${lang_info[index]} ];
-            then
-                cp $base_path/template${lang_info[index]} .
-                # ${path,} は先頭を小文字へ変換
-                mv template${lang_info[index]} ${path,}${lang_info[index]}
-            fi
+                # テンプレートファイルのコピー
+                if [ -e $base_path/template${lang_info[index]} ];
+                then
+                    cp $base_path/template${lang_info[index]} .
+                    # ${path,} は先頭を小文字へ変換
+                    mv template${lang_info[index]} ${path,}${lang_info[index]}
+                fi
+                cd ..
+                index=`expr $index + 1`
+            done
             cd ..
-            index=`expr $index + 1`
-        done
 
-        cd ..
+        else
+            temp=${path:0:1}
+            if ! test "$temp" = ".";
+            then
+                fext="${path##*.}"
+                index=1
+                while [ $index -lt ${#lang_info[*]} ];
+                do
+                    if test $fext = ${lang_info[index]:1};
+                    then
+                        index=`expr $index - 1`
+                        mv $path ./${temp^}/${lang_info[index]}
+                        break
+                    fi
+                    index=`expr $index + 2`
+                done
+            else
+                rm $path
+            fi
+        fi
     done
-
-    echo "Success!"
-    echo "Take it easy!!"
-    exec /bin/bash
 }
 
-# 既存構成の修正
+# 以前に作成していないディレクトリを作成する
 UpdateDir () {
+    update_dirary+=("$questions_name")
+    for path in ${update_lsdirary[@]};
+    do
+        if [ ! -e $path ];
+        then
+            mkdir $path
+            echo $path
+        fi
+    done
 }
 
 # 作業ディレクトリのパス
 base_path=`pwd`
+readonly CREATE="c"
+readonly UPDATE="u"
 
 # コンテストの選択
 echo "Please select a contest you want to join."
@@ -107,13 +125,35 @@ echo "Please input contest name you want to join. (ex. ABC001)"
 read contest_name
 echo ""
 
-if [ -e "$contest_name" ];
+if [ -d $contest_name ];
 then
     echo "Already exists file"
-    exit
+    status="$UPDATE"
 else
-    CreateDir
+    echo "Create new directory (name: ./$service_name/$contest_name)"
+    status="$CREATE"
+    mkdir "$contest_name"
 fi
+cd "$contest_name"
+#pwd
+
+# 問題の名前をスペース区切りで入力 ('A B C D'など)
+echo "Please input questions name separated by spaces."
+read questions_name
+echo ""
+
+if test "$status" = "$CREATE";
+then
+    mkdir $questions_name
+    ReadyDir
+else
+    UpdateDir
+    ReadyDir
+fi
+
+echo "Success!"
+echo "Take it easy!!"
+exec /bin/bash
 
 #cd ..
 #cd ..
