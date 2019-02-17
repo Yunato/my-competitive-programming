@@ -6,4 +6,6 @@
 *.kt~
 *.sh~
 *.obj
+*.out
+*.app
 *.exe
